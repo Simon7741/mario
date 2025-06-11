@@ -1,9 +1,13 @@
 {
-    "activeFile": "mario2.tsx",
+    "activeFile": "untitled.tmx",
     "expandedProjectPaths": [
         "."
     ],
     "fileStates": {
+        "enemes.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 3.3444
+        },
         "mario.tsx": {
             "scaleInDock": 1,
             "scaleInEditor": 4
@@ -13,11 +17,11 @@
             "scaleInEditor": 4
         },
         "untitled.tmx": {
-            "scale": 0.5179408482142858,
-            "selectedLayer": 0,
+            "scale": 2.0182,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 895.855195819641,
-                "y": 255.82071863384147
+                "x": 227.43038351005845,
+                "y": -48.31037558220197
             }
         },
         "untitled.tmx#world_tileset": {
@@ -31,25 +35,23 @@
     "last.imagePath": "/media/simon/DATA1/Škola/python/mario/images",
     "openFiles": [
         "untitled.tmx",
-        "world_tileset.tsx",
-        "mario.tsx",
         "mario2.tsx",
-        "mario2.tsx",
-        "mario2.tsx"
+        "enemes.tsx"
     ],
     "project": "mario.tiled-project",
     "recentFiles": [
+        "enemes.tsx",
+        "mario2.tsx",
         "untitled.tmx",
         "world_tileset.tsx",
-        "mario.tsx",
-        "mario2.tsx"
+        "mario.tsx"
     ],
     "tileset.lastUsedFormat": "tsx",
     "tileset.margin": 0,
     "tileset.spacing": 0,
     "tileset.tileSize": {
-        "height": 16,
-        "width": 16
+        "height": 8,
+        "width": 8
     },
     "tileset.useTransparentColor": true
 }
