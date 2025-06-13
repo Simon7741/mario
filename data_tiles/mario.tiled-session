@@ -1,12 +1,19 @@
 {
-    "activeFile": "untitled.tmx",
+    "activeFile": "map.tsx",
     "expandedProjectPaths": [
         "."
     ],
     "fileStates": {
+        "": {
+            "scaleInDock": 1
+        },
         "enemes.tsx": {
             "scaleInDock": 1,
             "scaleInEditor": 3.3444
+        },
+        "map.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         },
         "mario.tsx": {
             "scaleInDock": 1,
@@ -18,10 +25,10 @@
         },
         "untitled.tmx": {
             "scale": 2.0182,
-            "selectedLayer": 2,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 227.43038351005845,
-                "y": -48.31037558220197
+                "x": 177.38578931721335,
+                "y": -21.553859875136254
             }
         },
         "untitled.tmx#world_tileset": {
@@ -32,17 +39,21 @@
             "scaleInEditor": 4
         }
     },
+    "last.exportedFilePath": "/media/simon/DATA1/Škola/python/mario/data",
     "last.imagePath": "/media/simon/DATA1/Škola/python/mario/images",
+    "map.lastUsedExportFilter": "All Files (*)",
     "openFiles": [
         "untitled.tmx",
         "mario2.tsx",
-        "enemes.tsx"
+        "enemes.tsx",
+        "map.tsx"
     ],
     "project": "mario.tiled-project",
     "recentFiles": [
-        "enemes.tsx",
-        "mario2.tsx",
         "untitled.tmx",
+        "mario2.tsx",
+        "enemes.tsx",
+        "map.tsx",
         "world_tileset.tsx",
         "mario.tsx"
     ],
