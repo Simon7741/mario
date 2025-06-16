@@ -7,6 +7,7 @@ file = 'images/NES - Super Mario Bros - Tileset.png'
 file = 'images/map.png'
 file_enemy = 'images/NES - Super Mario Bros - Enemies & Bosses.png'
 file_player = 'images/NES - Super Mario Bros - Mario & Luigi.png'
+file_item = 'images/NES - Super Mario Bros - Items Objects and NPCs.png'
 
 data = np.loadtxt('data/data_data.csv', delimiter=',')
 data = np.int_(data)
@@ -23,7 +24,6 @@ PRIGHT  = pygame.K_d    #pohyb hráče doprava
 SPACE   = pygame.K_SPACE    #zoom kamery oddálení
 
 FPS = 45
-Life = 3
 SCALE = 3
 RESOLUTION = 16
 
@@ -41,7 +41,7 @@ class Game:
         self.running = True
         self.cam = [0,0]
         self.score = 0
-        self.life = Life
+        self.life = 3
 
     def run(self):
         while self.running:
@@ -56,12 +56,12 @@ class Game:
 
                                         
                         # self.load_image(file)
-            player.update()
-            obstacle_group.update()
+            items_group.update()
             game.render(background.image)
             game.render(tilem.image)
-            player.draw(self.screen)
+            # player.draw(self.screen)
             enemy_group.update()
+            player.update()
             score.render(self.score)
 
             pygame.display.update()
@@ -75,7 +75,7 @@ class Game:
 
     def render(self,image):
         self.screen.blit(image,(self.cam[0],self.cam[1]))
-        obstacle_group.draw(self.screen)
+        items_group.draw(self.screen)
 
     def load_image(self, file):
         self.file = file
@@ -148,6 +148,7 @@ class Tilemap:
             22 : 1,
             23 : 2,
         }
+        self.not_render = [-1,25,26]
         self.player = 24
         if rect:
             self.rect = pygame.Rect(rect)
@@ -161,7 +162,7 @@ class Tilemap:
                 # print(i,j,self.map[j,i])
 
 
-                if self.map[j,i] != -1:
+                if self.map[j,i] not in self.not_render:
                     tile = self.tileset.tiles[self.map[j, i]].convert_alpha()
                     self.image.blit(tile, (i*self.resolution, j*self.resolution))
                 # else:
@@ -189,6 +190,7 @@ class Tilemap:
                 if self.map[j,i] == self.player:
                     # player.add
                     player.add(Enemy((i*self.resolution,j*self.resolution),"player",player_set))
+                    # enemy_group.add(Enemy((i*self.resolution-64,j*self.resolution),"player",enemy_set))
                     self.map[j,i] = -1
                 elif self.map[j,i] in self.character:
                     enemy_group.add(Enemy((i*self.resolution,j*self.resolution),self.character[self.map[j,i]],enemy_set))
@@ -303,7 +305,7 @@ class Player(pygame.sprite.Sprite):
                     tilem.map[(self.player["top"] + self.roundg)//self.resolution , i//self.resolution] = 46
                     tilem.render()
                     pos = [i, self.rect.top-self.resolution]
-                    obstacle_group.add(Obstacle(pos,tiles.tiles[276]))
+                    items_group.add(items(pos,tiles.tiles[276]))
 
 
 
@@ -371,10 +373,10 @@ class Enemy(pygame.sprite.Sprite):
             1 : [2,2],
             2 : [2,2],
         }
-        self.size = dimention[type]
         self.tileset = tileset
         self.gravity = 0
         self.safespace = 2
+        self.diametre = dimention[type]
         self.presolution = self.tileset.size[0]
         self.resolution = RESOLUTION*SCALE
         self.dimention = tuple([self.resolution*x for x in data.shape])
@@ -382,7 +384,7 @@ class Enemy(pygame.sprite.Sprite):
         self.dx, self.dy = 0,0
         # self.scale = self.tileset.scale
         # print(self.resolution)
-        self.map = np.zeros(self.size, dtype=int)
+        self.map = np.zeros(self.diametre, dtype=int)
         self.character = type
         self.size = 8*SCALE
         self.fps = 4
@@ -390,6 +392,7 @@ class Enemy(pygame.sprite.Sprite):
         self.count = 20
         self.direct = [1,2]
         self.check_point = pos
+        self.rupdate = False
         # self.enemy()
         # print("haha")
         # self.borec = Tilemap(tileset,size,)
@@ -399,7 +402,7 @@ class Enemy(pygame.sprite.Sprite):
         # self.image = self.borec.image
         h, w = dimention[type]
         self.image = pygame.Surface((self.presolution*w, self.presolution*h)).convert_alpha()
-        self.image.fill((0,0,0,100))
+        self.image.fill((0,0,0,0))
         self.rect = self.image.get_rect(midbottom = pos)
         self.style = {
             1 : { 1 : [[108,109],[162,163]], 2 : [[110,111],[164,165]] , 0 : [[166,167]], },
@@ -408,9 +411,35 @@ class Enemy(pygame.sprite.Sprite):
         }
         self.image_number = 1
         self.status = 2
+        self.last_status = 2
+        # print(self.player)
+        self.player_image = {
+            "stand" : {
+                "small" : { 1: [[73,74],[146,147]],},
+                "big" : { 1: [[292,293],[365,366],[438,439],[511,512]],},
+            },
+            "go" : {
+                "small" : { 1: [[75,76],[148,149]], 2 : [[77,78],[150,151]], 3 : [[79,80],[152,153]], },
+                "big" : { 1: [[294,295],[367,368],[440,441],[513,514]],2: [[296,297],[369,370],[442,443],[515,516]],3: [[298,299],[371,372],[444,445],[517,518]],},
+            },
+            "dead" : {
+                "small" : { 1: [[85,86],[158,159]],},
+                "big" : { 1: [[-1,-1],[377,378],[450,451],[523,524]],},
+            },
+            "jump" : {
+                "small" : { 1: [[83,84],[156,157]],},
+                "big" : { 1: [[302,303],[375,376],[448,449],[521,522]],},
+            },
+            "grown" :{
+                "small" : {1 : [[803,804],[876,877]], 2 : [[732,733],[805,806],[878,879]], 3 : [[661,662],[734,735],[807,808],[880,881]]},
+                "big" : {1 : [[663,664],[736,737],[809,810],[882,883]], 2 : [[665,666],[738,739],[811,812],[884,885]],2 : [[813,814],[886,887]],2 : [[815,816],[888,889]],}
+            }
+        }
+        self.playerstat = ["stand","small"]
 
         # self.image = pygame.transform.scale(self.image,(size, size))
         self.cam = game.cam[:]
+        self.truefalste = False 
         # self.rect = self.image.get_rect(bottomleft = (pos))
         # self.speed  = 4
     # def enemy(self):
@@ -439,11 +468,14 @@ class Enemy(pygame.sprite.Sprite):
                 self.destroy()
             self.map_input()
         else: 
-            self.aply_gravity()
-            # print(self.status)
+            self.gravity += 0.15*self.scale
+            self.roundg = int(self.gravity)
+            # print(self.gravity)
         self.render()
+        self.aply_gravity()
 
     def aply_gravity(self):
+        self.roundg = int(self.gravity)
         self.rect.bottom += self.roundg
 
     def player_input(self):
@@ -453,9 +485,11 @@ class Enemy(pygame.sprite.Sprite):
             self.gravity += 0.5*SCALE
         if (self.key[PLEFT]):
             self.dx = -2*SCALE
+            self.direct[0] = 1
             # self.rect.left -= 2
         if (self.key[PRIGHT]):
             self.dx = 2*SCALE
+            self.direct[0] = -1
             # self.rect.right += 2
     def render(self):
         # m, n = self.map.shape
@@ -465,12 +499,59 @@ class Enemy(pygame.sprite.Sprite):
         x,y = 0,0
         # print(self,self.status)
         # print(self.rect.topleft)
-        if self.image_number >= 0:
-            if 21 > self.count and self.count > self.frame:
+        # if self.character == "player":
+        #     # print(self.count)
+        #     print(self.direct)
+
+        if (self.status != 0 and self.count > self.frame)or self.rupdate == True or self.status != self.last_status:
+            self.rupdate = False
+            # self.playerstat
+            self.image.fill((0,0,0,0))
+            if self.playerstat == "player":
+                print(self.diametre)
+            if self.character == "player" :
+                if self.playerstat[0] == "grown":
+                    if self.image_number <= len(self.player_image[self.playerstat[0]][self.playerstat[1]]):
+                        self.diametre = (len(self.player_image[self.playerstat[0]][self.playerstat[1]][self.image_number]),len(self.player_image[self.playerstat[0]][self.playerstat[1]][self.image_number][0]))
+                        h, w = self.diametre
+                        self.image = pygame.Surface((self.presolution*w, self.presolution*h)).convert_alpha()
+                        self.rect = self.image.get_rect(midbottom = self.rect.midbottom)
+                    else: 
+                        if self.playerstat[1] == "small": self.playerstat = ["stand","big"]
+                        else: self.playerstat = ["stand","small"]
+                    print(self.diametre,self.playerstat)
+                elif self.status == 0:
+                    self.playerstat[0] = "dead"
+                elif self.gravity != 0:
+                    self.playerstat[0] = "jump"
+                elif self.dx != 0:
+                    self.playerstat[0] = "go"
+                else: self.playerstat[0] = "stand"
+
+                if self.image_number > len(self.player_image[self.playerstat[0]][self.playerstat[1]]):
+                    # if self.playerstat == "grown":
+                    #     print(self.image_number)
+                    self.image_number = 1
+                # print(self.player_image[self.playerstat[0]][self.playerstat[1]][self.image_number])
+                for j in self.player_image[self.playerstat[0]][self.playerstat[1]][self.image_number]:
+                    x = 0
+                    for i in j:
+                        # print(i,j,self.map[j,i])
+                        # if self.map[j,i] != -1:
+                        tile = self.tileset.tiles[i].convert_alpha()
+                        self.image.blit(tile, (x*self.presolution, y*self.presolution))
+                        x+= 1
+                    y+= 1
+                # if self.image_number == len(self.player_image[self.playerstat[0]][self.playerstat[1]]):
+                #
+                #     self.image_number = 1
+                self.count = 0
+                self.image_number += 1
+                # print(self.dx)
+            else:
                 # print(self.count)
                 
                 # self.count  = 0
-                self.image.fill((0,0,0,0))
                 for j in self.style[self.character][self.image_number]:
                     x = 0
                     for i in j:
@@ -490,17 +571,24 @@ class Enemy(pygame.sprite.Sprite):
                     self.count = 0
                     self.image_number = 0 
                     pass
-            if self.count > 21: 
-                # print(self.count)
-                if self.count > 20:
-                    if self.character != "player":
-                        self.kill()
-                    else:
-                        self.image_number = -1
-        game.screen.blit(self.image,(self.rect.left,self.rect.top))
+                # print(self.dx)
+        if self.count > 80: 
+            if self.character != "player":
+                self.kill()
+            else:
+                self.dead()
+        if self.direct[0] > 0:
+            self.truefalste = True
+        elif self.direct[0] < 0:
+            self.truefalste = False
+            # print(self.direct)
+        self.surface_final = pygame.transform.flip(self.image, self.truefalste, False)
+        game.screen.blit(self.surface_final,(self.rect.left,self.rect.top))
+        # if self.status == 0:    print(self.count)
         self.count += 1
-        # if self.character != "player":
-        #     print(self,self.count)
+        self.last_status = self.status
+            # if self.character != "player":
+            #     print(self,self.count)
 
     def check_pos(self):
         # print(game.cam,self.cam)
@@ -564,13 +652,31 @@ class Enemy(pygame.sprite.Sprite):
         if self.type["gbottomleft"] in self.borders["down"] or self.type["gbottomright"] in self.borders["down"]:
             # print ([(self.player["bottom"] + self.roundg)//self.resolution , (self.player["right"] - self.safespace)//self.resolution])
             # print(self.resolution)
+            test = [[0],[0]]
+            for i in range(0,int(self.gravity),1):
+                self.type["gbottomleft"] = tilem.map[(self.player["bottom"] + i)//self.resolution , (self.player["left"] + self.safespace)//self.resolution]
+                self.type["gbottomright"] = tilem.map[(self.player["bottom"] + i)//self.resolution , (self.player["right"] - self.safespace)//self.resolution]
+                if self.type["gbottomleft"] not in self.borders["down"]:
+                    test[0].append(i)
+                    
+                if self.type["gbottomright"] not in self.borders["down"]:
+                    test[1].append(i)
+                # pass
+            
+            # print([max(test[0]),max(test[1])])
+            self.gravity = min([max(test[0]),max(test[1])])
+            if self.character == "player":
+                if self.gravity != self.roundg :
+                    self.rupdate = True
+            
+                # print(self.roundg)
 
             if self.character == "player" and (self.key[PUP] or self.key[SPACE]) :
                 self.gravity = -4*SCALE
+                self.rupdate = True
             else:
-                # self.rect.bottom = self.rect.bottom//16 *16
-                self.gravity -= 1
                 pass
+                # self.rect.bottom = self.rect.bottom//16 *16
         elif self.type["gtopleft"] in self.borders["up"] or self.type["gtopright"] in self.borders["up"]:
             self.gravity += 2*SCALE
             # print("xx")
@@ -581,16 +687,19 @@ class Enemy(pygame.sprite.Sprite):
 
             for i in test:
                 # print(tilem.map[(self.player["top"] + self.roundg)//self.resolution , i//self.resolution])
-                if tilem.map[(self.player["top"] + self.roundg)//self.resolution , i//self.resolution] == 234:
+                if tilem.map[(self.player["top"] + self.roundg)//self.resolution , i//self.resolution] == 44:
             # if self.type["gtopmid"] == 234:
                 # print("yy")
                 # if i == "gtopright":
                 #     tilem.map[(self.player["top"] + self.roundg)//self.resolution , (self.player["right"] + self.safespace)//self.resolution] = 0
                 # else:
-                    tilem.map[(self.player["top"] + self.roundg)//self.resolution , i//self.resolution] = 46
+                    tilem.map[(self.player["top"] + self.roundg)//self.resolution , i//self.resolution] = 39
+                    icon = tilem.map[(self.player["top"] + self.roundg - 2 * self.size)//self.resolution , i//self.resolution]
                     tilem.render()
-                    pos = [i, self.rect.top-self.resolution]
-                    obstacle_group.add(Obstacle(pos,tiles.tiles[276]))
+                    if icon != -1:
+                        # self.
+                        pos = [round(i,self.size), round(self.rect.top-self.resolution,self.size)]
+                        items_group.add(items(pos,tiles.tiles[icon]))
 
 
 
@@ -598,11 +707,11 @@ class Enemy(pygame.sprite.Sprite):
             self.dead()
         else:
             self.gravity += 0.15*self.scale
-            self.aply_gravity()
+        # self.aply_gravity()
 
         if self.type["mbottomleft"] in self.borders["left"] or self.type["mtopleft"] in self.borders["left"]:
             # self.rect.right = self.rect.right//16 *16 + 16
-            self.direct[1] = 1
+            self.direct[0] = 1
             self.dx = -1*self.scale
             self.map_input()
             if self.type["mbottomleft"] in self.borders["left"] or self.type["mtopleft"] in self.borders["left"]:
@@ -610,7 +719,7 @@ class Enemy(pygame.sprite.Sprite):
             
         elif self.type["mbottomright"] in self.borders["right"] or self.type["mtopright"] in self.borders["right"]:
             # self.rect.left = self.rect.left//16 *16 -1
-            self.direct[1] = -1
+            self.direct[0] = -1
             self.dx = 1*self.scale
             self.map_input()
             if self.type["mbottomright"] in self.borders["right"] or self.type["mtopright"] in self.borders["right"]:
@@ -636,14 +745,14 @@ class Enemy(pygame.sprite.Sprite):
         # print(player.sprite.life)
         # print(self)
         # print(pygame.sprite.spritecollide(player.sprite, enemy_group, False))
-        if -2 >player.sprite.gravity or player.sprite.gravity > 4 and self.character != "player":
-            if self in pygame.sprite.spritecollide(player.sprite, enemy_group, False): # False na konci určuje, zda-li má kolidující obstacle zabít
+        if -2 >player.sprite.gravity or player.sprite.gravity > 3 and self.character != "player":
+            if self in pygame.sprite.spritecollide(player.sprite, enemy_group, False): # False na konci určuje, zda-li má kolidující items zabít
                 # print(self)
                 if self.character == 2 and self.status == 2 :
                     self.status = 1
                     self.direct[0] = 0
                     # print(self.count)
-                elif self.status == 1 and self.count < 2:
+                elif self.status == 1 and self.count < 3:
                     # print(self.count)
                     # continue
                     return
@@ -656,40 +765,60 @@ class Enemy(pygame.sprite.Sprite):
                 print("xx")
                 game.score += 100
                 self.count = 0
-                player.sprite.gravity = -6
+                player.sprite.gravity = -5
                 # self.kill()
                 # pygame.time.set_timer(self.kill(),3000)
         elif self.character == "player" and -2 < self.gravity < 3:
-            if pygame.sprite.spritecollide(player.sprite, enemy_group, False): # False na konci určuje, zda-li má kolidující obstacle zabít
-                print("player")
-                # print(self.gravity)
-                # print(pygame.sprite.spritecollide(player.sprite, enemy_group, False))
-                self.status = 0
-                self.count = 0
-                self.gravity = 7
-                self.life = False
+            if pygame.sprite.spritecollide(player.sprite, enemy_group, False): # False na konci určuje, zda-li má kolidující items zabít
+                if self.playerstat[1] == "small":
+                    print("player")
+                    # print(self.gravity)
+                    # print(pygame.sprite.spritecollide(player.sprite, enemy_group, False))
+                    self.status = 0
+                    self.count = 0
+                    self.gravity = -10
+                    self.life = False
+                else:
+                    self.playerstat[0] = "grown"
+                    self.image_number = 1
+
+            item =  pygame.sprite.spritecollide(player.sprite, items_group, True)
+            for i in item:
+                if self.playerstat[1] == "small":
+                    self.playerstat[0] = "grown"
+
+                print(self.playerstat)
+                self.image_number = 1
+
+        
         # else:
         #     print(self.status)
 
     def dead(self):
-        game.cam[0] = 0
-        self.rect.bottomleft = self.check_point
+        if self.character == "player":
+            game.cam[0] = 0
+            self.rect.bottomleft = self.check_point
+            self.status = 2
+            self.life = True
+        else:
+            self.status = 0
 
     def __str__(self):
         return f'{self.__class__.__name__} {self.character, self.rect.center}'
 
 
-class Obstacle(pygame.sprite.Sprite):
+class items(pygame.sprite.Sprite):
     def __init__(self,pos,image):
         super().__init__()
         print("start")
+        # print(image)
         # self.tileset = tileset
         # i,j = pos
         # tile = self.tileset.tiles[pos]
         # self.image.blit(tile, (i*16, j*16))
         # self.image = pygame.image.load("kaktus.png").convert_alpha()
         self.image = image
-        size = 32
+        size = 48
         self.image = pygame.transform.scale(self.image,(size, size))
         self.cam = game.cam[:]
         self.rect = self.image.get_rect(bottomleft = (pos))
@@ -697,7 +826,7 @@ class Obstacle(pygame.sprite.Sprite):
 
     def update(self):
         self.check_pos()
-        self.destroy()
+        # self.destroy()
     
     def check_pos(self):
         # print(game.cam,self.cam)
@@ -709,7 +838,7 @@ class Obstacle(pygame.sprite.Sprite):
 
 
     def destroy(self):
-        if pygame.sprite.spritecollide(player.sprite, obstacle_group, True): # False na konci určuje, zda-li má kolidující obstacle zabít
+        if pygame.sprite.spritecollide(player.sprite, items_group, True): # False na konci určuje, zda-li má kolidující items zabít
             print("xx")
             # self.kill()
 
@@ -737,7 +866,7 @@ score = Text(game.score,(0,0,0),(20,20))
 background = Tilemap(tiles,bg_set.shape)
 background.set(bg_set)
 
-obstacle_group = pygame.sprite.Group()
+items_group = pygame.sprite.Group()
 # game.render(background.image)
 # game.render(tilem.image)
 # enemy_group.add(Enemy((round(220,RESOLUTION),200),1,enemy_set,(2,2)))
