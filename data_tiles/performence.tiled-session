@@ -3,7 +3,7 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "new.tmx",
+    "activeFile": "mario2.tsx",
     "expandedProjectPaths": [
         "."
     ],
@@ -22,25 +22,25 @@
         },
         "mario2.tsx": {
             "scaleInDock": 1,
-            "scaleInEditor": 1
+            "scaleInEditor": 4
         },
         "new.tmx": {
-            "scale": 2.8502,
+            "scale": 2.6556,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 242.78997965055083,
-                "y": 147.18265384885268
+                "x": 768.1879801174875,
+                "y": 110.89772556107846
             }
         },
         "player.tsx": {
             "scaleInDock": 1,
-            "scaleInEditor": 10.0544
+            "scaleInEditor": 3.3711
         },
         "untitled.tmx": {
             "scale": 0.4877232142857142,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 850.8924485125859,
+                "x": 986.2151029748286,
                 "y": 128.14645308924491
             }
         },
@@ -62,17 +62,16 @@
         "mario2.tsx",
         "enemes.tsx",
         "untitled.tmx",
-        "player.tsx",
         "player.tsx"
     ],
     "project": "performence.tiled-project",
     "recentFiles": [
         "map.tsx",
+        "new.tmx",
         "player.tsx",
         "untitled.tmx",
         "enemes.tsx",
         "mario2.tsx",
-        "new.tmx",
         "mario.tsx",
         "world_tileset.tsx"
     ],

@@ -23,49 +23,76 @@ PLEFT   = pygame.K_a    #pohyb hráče doleva
 PRIGHT  = pygame.K_d    #pohyb hráče doprava
 SPACE   = pygame.K_SPACE    #zoom kamery oddálení
 
-FPS = 45
-SCALE = 3
+SCALE = 4
 RESOLUTION = 16
 
 clock = pygame.time.Clock()
+pygame.init()
 
 class Game:
-    W = 1280
-    H = 720
+    W = 1920
+    H = 1080
     SIZE = W, H
 
     def __init__(self):
+        self.fps = 45
         pygame.init()
+        # self.screen = pygame.display.set_mode(Game.SIZE,pygame.FULLSCREEN)
         self.screen = pygame.display.set_mode(Game.SIZE)
+        # pygame.display.toggle_fullscreen()
         pygame.display.set_caption("'Fake' Mario")
         self.running = True
         self.cam = [0,0]
         self.score = 0
         self.life = 3
+        self.texts = [(450,200),(1000,700),[146*RESOLUTION*SCALE,6*RESOLUTION*SCALE],[43*SCALE*RESOLUTION,10*SCALE*RESOLUTION]]
+        self.pocet = 0
+        self.nevim = 1
+        self.timerevent = pygame.USEREVENT + 1
+
 
     def run(self):
         while self.running:
+            # print(pygame.display.get_window_size())
+            RESOLUTION = pygame.display.get_window_size()[1]/15
+            # print(clock.get_fps())
+
+            # print(player.sprite.life)
+            # print(self.timerevent)
+            if player.sprite.life == False:
+                pygame.time.set_timer(self.timerevent,5000,1)
+                
+                # print(enemy_group.sprites())
+                # print(ds)
 
             for event in pygame.event.get():
                 if event.type == QUIT:
                     self.running = False
 
-                elif event.type == KEYDOWN:
-                    if event.key == K_l:
-                        tilem.set_random()
-
-                                        
-                        # self.load_image(file)
+                if event.type == self.timerevent:
+                    self.cam = [0,0]
+                    enemy_group.empty()
+                    data = np.loadtxt('data/data_data.csv', delimiter=',')
+                    data = np.int_(data)
+                    tilem.set(data)
+                    game.score = 0
+                    # pygame.time.set_timer(self.timerevent,5000)
             items_group.update()
             game.render(background.image)
+            texty[0].render(self.screen, self.texts[0][0] + self.cam[0], self.texts[0][1] + self.cam[1], "justify")
+            # texty [1] = pygame.transform.rotate(texty[1],90)
+            texty[1].render_rotated(self.screen, self.texts[1][0] + self.cam[0], self.texts[1][1] + self.cam[1], 90, "justify")
+            texty[2].render(self.screen, self.texts[2][0] + self.cam[0], self.texts[2][1] + self.cam[1], "justify")
+            texty[3].render(self.screen, self.texts[3][0] + self.cam[0], self.texts[3][1] + self.cam[1], "justify")
+
             game.render(tilem.image)
             # player.draw(self.screen)
             enemy_group.update()
             player.update()
-            score.render(self.score)
+            score.render(f"score: {self.score}")
 
             pygame.display.update()
-            clock.tick(FPS)
+            clock.tick(game.fps)
 
         pygame.quit()
 
@@ -90,12 +117,221 @@ class Game:
 class Text:
     def __init__(self,text,color,pos):
         self.color = color
-        self.text_font = pygame.font.Font("PixelifySans.ttf",50)
+        self.text_font = pygame.font.Font("font.otf",50)
         self.text_surface = self.text_font.render(str(text), True, color)
         self.text_rect = self.text_surface.get_rect(center=pos)
     def render(self,text):
         self.text_surface = self.text_font.render(str(text), True, self.color)
         game.screen.blit(self.text_surface, self.text_rect)
+
+
+class MultiLineText:
+    def __init__(self, font, color, max_width):
+        """
+        Inicializuje instanci MultiLineText.
+
+        Argumenty:
+            font (pygame.font.Font): Objekt fontu Pygame pro vykreslování textu.
+            color (tuple): Barva textu ve formátu RGB (např. (255, 255, 255) pro bílou).
+            max_width (int): Maximální šířka bloku textu. Text bude zalomen, aby se vešel.
+        """
+        self.font = font
+        self.color = color
+        self.max_width = max_width
+        self.lines = []
+        self.line_height = self.font.get_linesize()
+        self.base_space_width = self.font.size(' ')[0]
+
+    def set_text(self, text):
+        """
+        Nastaví text pro zobrazení a zalomí ho do řádků.
+
+        Argumenty:
+            text (str): Vstupní text, který má být zobrazen.
+        """
+        self.lines = self._wrap_text(text)
+
+    def _wrap_text(self, text):
+        """
+        Zalomi text do řádků, aby se vešel do max_width.
+        """
+        paragraphs = text.replace('\r', '').split('\n')
+        all_wrapped_lines = []
+
+        for para in paragraphs:
+            if not para.strip():
+                all_wrapped_lines.append("")
+                continue
+
+            words = para.split(' ')
+            current_line_words = []
+            current_line_width = 0
+
+            for word in words:
+                word_width = self.font.size(word)[0]
+
+                potential_add_width = word_width
+                if current_line_words:
+                    potential_add_width += self.base_space_width
+
+                if current_line_width + potential_add_width <= self.max_width:
+                    current_line_words.append(word)
+                    current_line_width += potential_add_width
+                else:
+                    if not current_line_words: # Slovo samotné je delší než max_width
+                        all_wrapped_lines.append(word) # Přidá slovo i když přesahuje
+                        current_line_words = []
+                        current_line_width = 0
+                    else:
+                        all_wrapped_lines.append(" ".join(current_line_words))
+                        current_line_words = [word]
+                        current_line_width = word_width
+
+            if current_line_words:
+                all_wrapped_lines.append(" ".join(current_line_words))
+        
+        return all_wrapped_lines
+
+    def _get_line_actual_width(self, line):
+        """
+        Vypočítá šířku řádku, pokud by byl vykreslen standardně (s jednou mezerou mezi slovy).
+        """
+        words = line.split(' ')
+        if not words:
+            return 0
+        
+        total_width = 0
+        for i, word in enumerate(words):
+            total_width += self.font.size(word)[0]
+            if i < len(words) - 1: # Přidat šířku mezery pro všechny kromě posledního slova
+                total_width += self.base_space_width
+        return total_width
+
+
+    def render(self, surface, x, y, align="left",rotate = 0):
+        """
+        Vykreslí text na danou plochu.
+
+        Argumenty:
+            surface (pygame.Surface): Plocha Pygame, na kterou se má text vykreslit.
+            x (int): X-ová souřadnice levého horního rohu bloku textu.
+            y (int): Y-ová souřadnice levého horního rohu bloku textu.
+            align (str): Zarovnání textu ("left", "center", "right", "justify").
+                         "justify" se pokusí zarovnat text do bloku, přidáním mezer mezi slova.
+        """
+        current_y = y
+        for line_index, line in enumerate(self.lines):
+            line_surface = None
+            
+            if not line.strip(): # Pokud je řádek prázdný nebo obsahuje jen mezery
+                current_y += self.line_height
+                continue
+
+            words_on_line = line.split(' ')
+            
+            is_last_line_in_list = (line_index == len(self.lines) - 1)
+            # Zjišťujeme, zda je to poslední "vizuální" řádek odstavce
+            is_last_paragraph_line = is_last_line_in_list
+            if not is_last_line_in_list and not self.lines[line_index + 1].strip():
+                 is_last_paragraph_line = True
+            
+            is_single_word_line = (len(words_on_line) == 1)
+
+            # Nová kontrola: Je řádek příliš krátký na to, aby byl justify?
+            # Pokud je šířka řádku s normálními mezerami výrazně menší než max_width,
+            # NEbudeme ho justify.
+            line_actual_width = self._get_line_actual_width(line)
+            # Určitá tolerance je zde důležitá, aby se justify neaplikoval na příliš krátké řádky
+            is_too_short_for_justify = (line_actual_width < self.max_width * 0.75) # Např. 75% šířky
+
+            if (align == "justify" and
+                not is_last_paragraph_line and
+                not is_single_word_line and
+                not is_too_short_for_justify): # Přidána nová podmínka
+                line_surface = self._justify_line(line)
+            else:
+                line_surface = self.font.render(line, True, self.color)
+
+            if line_surface:
+                target_x = x
+                if align == "center":
+                    target_x = x + (self.max_width - line_surface.get_width()) // 2
+                elif align == "right":
+                    target_x = x + self.max_width - line_surface.get_width()
+                # Pro "left" a "justify" (když justify selže, je to left) je target_x už nastaven na x
+
+                surface.blit(line_surface, (target_x, current_y))
+                # print(pygame.time.get_ticks())
+            current_y += self.line_height
+
+    def _justify_line(self, line):
+        """
+        Vytvoří zarovnaný povrch řádku pro zarovnání do bloku.
+        """
+        words = line.split(' ')
+        num_gaps = len(words) - 1
+
+        if num_gaps <= 0:
+            return self.font.render(line, True, self.color)
+
+        words_width = sum(self.font.size(word)[0] for word in words)
+        current_content_width = words_width + num_gaps * self.base_space_width
+        
+        extra_space_to_fill = self.max_width - current_content_width
+
+        if extra_space_to_fill <= 0: # Není potřeba přidávat mezery, možná už je plné nebo přeplněné
+            return self.font.render(line, True, self.color)
+
+        extra_space_per_gap = extra_space_to_fill // num_gaps
+        remaining_extra_space = extra_space_to_fill % num_gaps
+
+        justified_text_surface = pygame.Surface((self.max_width, self.line_height), pygame.SRCALPHA)
+        current_x = 0
+        for i, word in enumerate(words):
+            word_surface = self.font.render(word, True, self.color)
+            justified_text_surface.blit(word_surface, (current_x, 0))
+            current_x += word_surface.get_width()
+
+            if i < num_gaps:
+                gap_width = self.base_space_width + extra_space_per_gap
+                if remaining_extra_space > 0:
+                    gap_width += 1
+                    remaining_extra_space -= 1
+                current_x += gap_width
+        
+        return justified_text_surface
+
+    def render_rotated(self, surface, x, y, angle, align="left"):
+        """
+        Vykreslí celý textový blok otočený o daný úhel kolem svého středu.
+
+        Argumenty:
+            surface (pygame.Surface): Plocha, na kterou se má kreslit.
+            x (int): X-ová souřadnice STŘEDU výsledného otočeného bloku.
+            y (int): Y-ová souřadnice STŘEDU výsledného otočeného bloku.
+            angle (float): Úhel otočení ve stupních.
+            align (str): Zarovnání textu uvnitř bloku ("left", "center", "right", "justify").
+        """
+        # 1. Výpočet rozměrů bloku a vytvoření dočasné plochy
+        if not self.lines:
+            return # Není co kreslit
+
+        block_height = self.line_height * len(self.lines)
+        # Použijeme SRCALPHA pro průhledné pozadí
+        text_block_surface = pygame.Surface((self.max_width, block_height), pygame.SRCALPHA)
+
+        # 2. Vykreslení textu na dočasnou plochu pomocí stávající render metody
+        # Kreslíme na pozici (0, 0), protože pracujeme v lokálních souřadnicích text_block_surface
+        self.render(text_block_surface, 0, 0, align)
+
+        # 3. Otočení celé plochy s textem
+        rotated_surface = pygame.transform.rotate(text_block_surface, angle)
+
+        # 4. Získání nového obdélníku a nastavení jeho středu na požadované (x, y)
+        rotated_rect = rotated_surface.get_rect(center=(x, y))
+
+        # 5. Vykreslení finálního otočeného povrchu na hlavní obrazovku
+        surface.blit(rotated_surface, rotated_rect.topleft)
 
 class Tileset:
     def __init__(self, file, size=(16, 16), margin=0, spacing=0, scale=1):
@@ -157,6 +393,12 @@ class Tilemap:
 
     def render(self):
         m, n = self.map.shape
+        # print(self.size)
+        # print(m,n)
+        # n, m = pygame.display.get_window_size()
+        # n, m = (n+game.cam[0])//(RESOLUTION*SCALE), (m+game.cam[0]//(RESOLUTION*SCALE)
+        
+        # print(m,n)
         for j in range(m):
             for i in range(n):
                 # print(i,j,self.map[j,i])
@@ -203,159 +445,6 @@ class Tilemap:
     def __str__(self):
         return f'{self.__class__.__name__} {self.size}'
 
-class Player(pygame.sprite.Sprite):
-    def __init__(self,resolution = 16, scale = 1):
-        super().__init__()
-        self.resolution = resolution*scale
-        self.scale = scale
-        self.image = pygame.image.load('old bordel/dinosaur.png')
-        self.image = pygame.transform.scale(self.image,(self.resolution-1,self.resolution-1))
-        self.rect = self.image.get_rect(midbottom = (100,100))
-        self.gravity = 0
-        self.safespace = 2
-        self.dimention = tuple([self.resolution*x for x in data.shape])
-        self.key = []
-        self.check_point = (100,170)
-        self.dx, self.dy = 0,0
-
-        # self.dimention
-    def player_input(self):
-        self.key = pygame.key.get_pressed()
-        self.dx = 0
-        if (self.key[PDOWN] ):
-            self.gravity += 0.5*SCALE
-        if (self.key[PLEFT]):
-            self.dx = -2*SCALE
-            # self.rect.left -= 2
-        if (self.key[PRIGHT]):
-            self.dx = 2*SCALE
-            # self.rect.right += 2
-    def aply_gravity(self):
-        self.rect.bottom += self.roundg
-
-    def map_input(self):
-        self.player = {
-            "bottom": self.rect.bottom+game.cam[1], 
-            "top": self.rect.top+game.cam[1], 
-            "centerx" : self.rect.centerx - game.cam[0],
-            "left": self.rect.left-game.cam[0], 
-            "right": self.rect.right-game.cam[0]}
-        self.roundg = int(self.gravity)
-        self.type = {
-            "gbottomleft" : tilem.map[(self.player["bottom"] + self.roundg)//self.resolution , (self.player["left"] + self.safespace)//self.resolution],
-            "gbottomright" : tilem.map[(self.player["bottom"] + self.roundg)//self.resolution , (self.player["right"] - self.safespace)//self.resolution],
-            "gtopleft" : tilem.map[(self.player["top"] + self.roundg)//self.resolution , (self.player["left"] + self.safespace)//self.resolution],
-            "gtopright" : tilem.map[(self.player["top"] + self.roundg)//self.resolution , (self.player["right"] - self.safespace)//self.resolution],
-            "gtopmid" : tilem.map[(self.player["top"] + self.roundg)//self.resolution , (self.player["right"])//self.resolution],
-            "mbottomleft" : tilem.map[(self.player["bottom"] - self.safespace)//self.resolution , (self.player["left"] + self.dx)//self.resolution],
-            "mbottomright" : tilem.map[(self.player["bottom"] - self.safespace)//self.resolution , (self.player["right"] + self.dx)//self.resolution],
-            "mtopleft" : tilem.map[(self.player["top"] + self.safespace)//self.resolution , (self.player["left"] + self.dx)//self.resolution],
-            "mtopright" : tilem.map[(self.player["top"] + self.safespace)//self.resolution , (self.player["right"] + self.dx)//self.resolution],
-        }
-    def check_border(self):
-        self.help_borders = [[43,60],[86,103],[233,252]]
-        self.borders = {
-            "up": [i for i in range(self.help_borders[0][0],self.help_borders[0][1])],
-            "down": [i for i in range(self.help_borders[0][0],self.help_borders[0][1])],
-            "left": [i for i in range(self.help_borders[0][0],self.help_borders[0][1])],
-            "right": [i for i in range(self.help_borders[0][0],self.help_borders[0][1])],
-        }
-        for x in self.help_borders[1:]:
-            for i in range(x[0],x[1]):
-                self.borders["up"].append(i)
-                self.borders["down"].append(i)
-                self.borders["left"].append(i)
-                self.borders["right"].append(i)
-        
-        if self.rect.top < 0:
-            self.rect.top = 0
-            self.gravity = 0
-        elif self.rect.left < 0:
-            self.rect.left = 0
-            self.gravity = 0
-        elif self.rect.bottom > self.dimention[0]-1:
-            self.rect.bottom = self.dimention[0]-1
-        elif self.rect.right > self.dimention[1]-1:
-            self.rect.right = self.dimention[1]-1
-
-        self.map_input()
-        
-        
-        if self.type["gbottomleft"] in self.borders["down"] or self.type["gbottomright"] in self.borders["down"]:
-            if (self.key[PUP] or self.key[SPACE]) :
-                self.gravity = -4*SCALE
-            else:
-                # self.rect.bottom = self.rect.bottom//16 *16
-                self.gravity -= 1
-        elif self.type["gtopleft"] in self.borders["up"] or self.type["gtopright"] in self.borders["up"]:
-            self.gravity += 2*SCALE
-            # print("xx")
-            # for i in ["gtopleft","gtopright"]:
-            test = [i for i in range(self.player["left"],self.player["right"])]
-            # print(test)
-            # if 234 in test:
-
-            for i in test:
-                if tilem.map[(self.player["top"] + self.roundg)//self.resolution , i//self.resolution] == 234:
-            # if self.type["gtopmid"] == 234:
-                # print("yy")
-                # if i == "gtopright":
-                #     tilem.map[(self.player["top"] + self.roundg)//self.resolution , (self.player["right"] + self.safespace)//self.resolution] = 0
-                # else:
-                    tilem.map[(self.player["top"] + self.roundg)//self.resolution , i//self.resolution] = 46
-                    tilem.render()
-                    pos = [i, self.rect.top-self.resolution]
-                    items_group.add(items(pos,tiles.tiles[276]))
-
-
-
-        elif 108 in self.type.values():
-            self.dead()
-        else:
-            self.gravity += 0.15*self.scale
-            self.aply_gravity()
-
-        if self.type["mbottomleft"] in self.borders["left"] or self.type["mtopleft"] in self.borders["left"]:
-            # self.rect.right = self.rect.right//16 *16 + 16
-            self.dx = -1*self.scale
-            self.map_input()
-            if self.type["mbottomleft"] in self.borders["left"] or self.type["mtopleft"] in self.borders["left"]:
-                self.dx = 0
-            
-        elif self.type["mbottomright"] in self.borders["right"] or self.type["mtopright"] in self.borders["right"]:
-            # self.rect.left = self.rect.left//16 *16 -1
-            self.dx = 1
-            self.map_input()
-            if self.type["mbottomright"] in self.borders["right"] or self.type["mtopright"] in self.borders["right"]:
-                self.dx = 0
-
-        self.rect.x += self.dx
-    def dead(self):
-        game.cam[0] = 0
-        self.rect.bottomleft = self.check_point
-
-    def check_camera(self):
-        x = int(pygame.display.get_window_size()[0]/3)
-        shiftleft = self.rect.centerx - x*2
-        shiftright = x - self.rect.centerx
-        # print(shiftleft,shiftright,game.cam[0],self.rect.centerx)
-        if shiftleft > 0:
-            game.cam[0] -= shiftleft
-            self.rect.centerx = x*2
-        if shiftright > 0 and game.cam[0]<0:
-            game.cam[0] += shiftright
-            self.rect.centerx = x
-
-
-
-        
-
-    def update(self):
-        # self.position.render()
-        # print(self.rect.center)
-        self.player_input()
-        self.check_border()
-        self.check_camera()
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self,pos,type,tileset):
@@ -367,6 +456,8 @@ class Enemy(pygame.sprite.Sprite):
         # self.image = pygame.image.load("kaktus.png").convert_alpha()
         self.scale = SCALE
         self.life = True
+        if type != "player":
+            self.life = False
         # self.pos = pos
         dimention = {
             "player" : [2,2],
@@ -388,9 +479,9 @@ class Enemy(pygame.sprite.Sprite):
         self.character = type
         self.size = 8*SCALE
         self.fps = 4
-        self.frame = FPS//self.fps
+        self.frame = game.fps//self.fps
         self.count = 20
-        self.direct = [1,2]
+        self.direct = [-1,2]
         self.check_point = pos
         self.rupdate = False
         # self.enemy()
@@ -403,7 +494,7 @@ class Enemy(pygame.sprite.Sprite):
         h, w = dimention[type]
         self.image = pygame.Surface((self.presolution*w, self.presolution*h)).convert_alpha()
         self.image.fill((0,0,0,0))
-        self.rect = self.image.get_rect(midbottom = pos)
+        self.rect = self.image.get_rect(topleft = pos)
         self.style = {
             1 : { 1 : [[108,109],[162,163]], 2 : [[110,111],[164,165]] , 0 : [[166,167]], },
             2 : { 1 : [[216,217],[270,271]], 2 : [[218,219],[272,273]] , 0 : [[220,221],[274,275]], },
@@ -432,7 +523,11 @@ class Enemy(pygame.sprite.Sprite):
             },
             "grown" :{
                 "small" : {1 : [[803,804],[876,877]], 2 : [[732,733],[805,806],[878,879]], 3 : [[661,662],[734,735],[807,808],[880,881]]},
-                "big" : {1 : [[663,664],[736,737],[809,810],[882,883]], 2 : [[665,666],[738,739],[811,812],[884,885]],2 : [[813,814],[886,887]],2 : [[815,816],[888,889]],}
+                "big" : {1 : [[663,664],[736,737],[809,810],[882,883]], 2 : [[665,666],[738,739],[811,812],[884,885]],2 : [[813,814],[886,887]],2 : [[815,816],[888,889]],},
+            },
+            "crown": {
+                "big" :{1: [[304,305],[377,378],[450,451],[523,524]]}
+
             }
         }
         self.playerstat = ["stand","small"]
@@ -454,25 +549,29 @@ class Enemy(pygame.sprite.Sprite):
         print(self)
 
     def update(self):
-        if self.character == "player":
-            self.player_input()
-            self.check_camera()
+        if self.life:
+            if self.character == "player":
+                self.player_input()
+                self.check_camera()
+            else:
+                self.dx = self.direct[0] * self.direct[1]
+                self.check_pos()
+                # print(self.status)
+            # self.player_input()
+            if self.status != 0:
+                self.check_border()
+                if player.sprite.life:
+                    self.destroy()
+                self.map_input()
+            else: 
+                self.gravity += 0.15*self.scale
+                self.roundg = int(self.gravity)
+                # print(self.gravity)
+            self.render()
+            self.aply_gravity()
         else:
-            self.dx = self.direct[0] * self.direct[1]
-            self.check_pos()
-            # print(self.status)
-        # self.player_input()
-        if self.status != 0:
-            self.check_border()
-            if player.sprite.life:
-                self.destroy()
-            self.map_input()
-        else: 
-            self.gravity += 0.15*self.scale
-            self.roundg = int(self.gravity)
-            # print(self.gravity)
-        self.render()
-        self.aply_gravity()
+            if (self.rect.left + game.cam[0] < pygame.display.get_window_size()[0]):
+                self.life = True
 
     def aply_gravity(self):
         self.roundg = int(self.gravity)
@@ -507,8 +606,6 @@ class Enemy(pygame.sprite.Sprite):
             self.rupdate = False
             # self.playerstat
             self.image.fill((0,0,0,0))
-            if self.playerstat == "player":
-                print(self.diametre)
             if self.character == "player" :
                 if self.playerstat[0] == "grown":
                     if self.image_number <= len(self.player_image[self.playerstat[0]][self.playerstat[1]]):
@@ -516,12 +613,15 @@ class Enemy(pygame.sprite.Sprite):
                         h, w = self.diametre
                         self.image = pygame.Surface((self.presolution*w, self.presolution*h)).convert_alpha()
                         self.rect = self.image.get_rect(midbottom = self.rect.midbottom)
+                        self.image.fill((0,0,0,0))
                     else: 
                         if self.playerstat[1] == "small": self.playerstat = ["stand","big"]
                         else: self.playerstat = ["stand","small"]
-                    print(self.diametre,self.playerstat)
+                    # print(self.diametre,self.playerstat)
                 elif self.status == 0:
                     self.playerstat[0] = "dead"
+                elif self.playerstat[1] == "big" and self.key[PDOWN]:
+                    self.playerstat[0] = "crown"
                 elif self.gravity != 0:
                     self.playerstat[0] = "jump"
                 elif self.dx != 0:
@@ -575,8 +675,6 @@ class Enemy(pygame.sprite.Sprite):
         if self.count > 80: 
             if self.character != "player":
                 self.kill()
-            else:
-                self.dead()
         if self.direct[0] > 0:
             self.truefalste = True
         elif self.direct[0] < 0:
@@ -618,7 +716,7 @@ class Enemy(pygame.sprite.Sprite):
         }
 
     def check_border(self):
-        self.help_borders = [[36,45],[86,103],]
+        self.help_borders = [[36,40],[43,45],[54,55],[151,153],[169,171],[185,188],[203,206],[144,150]]
         self.borders = {
             "up": [i for i in range(self.help_borders[0][0],self.help_borders[0][1])],
             "down": [i for i in range(self.help_borders[0][0],self.help_borders[0][1])],
@@ -632,12 +730,15 @@ class Enemy(pygame.sprite.Sprite):
                 self.borders["left"].append(i)
                 self.borders["right"].append(i)
         
-        if self.rect.top < 0:
-            self.rect.top = 0
-            self.gravity = 0
-        elif self.rect.left < 0:
-            self.rect.left = 0
-            self.gravity = 0
+        # if self.rect.top < 0:
+        #     self.rect.top = 0
+        #     self.gravity = 0
+
+        if self.character == "player":
+            # print(self.rect.top)
+            if self.rect.left < 0:
+                self.rect.left = 0
+                self.gravity = 0
         # elif self.rect.bottom > self.dimention[0]-1:
         #     self.rect.bottom = self.dimention[0]-1
         # elif self.rect.right > self.dimention[1]-1:
@@ -672,7 +773,7 @@ class Enemy(pygame.sprite.Sprite):
                 # print(self.roundg)
 
             if self.character == "player" and (self.key[PUP] or self.key[SPACE]) :
-                self.gravity = -4*SCALE
+                self.gravity = -4.5*SCALE
                 self.rupdate = True
             else:
                 pass
@@ -681,7 +782,7 @@ class Enemy(pygame.sprite.Sprite):
             self.gravity += 2*SCALE
             # print("xx")
             # for i in ["gtopleft","gtopright"]:
-            test = [i for i in range(self.player["left"],self.player["right"])]
+            test = [i for i in range(self.player["left"]+2,self.player["right"]-2)]
             # print(test)
             # if 234 in test:
 
@@ -697,33 +798,49 @@ class Enemy(pygame.sprite.Sprite):
                     icon = tilem.map[(self.player["top"] + self.roundg - 2 * self.size)//self.resolution , i//self.resolution]
                     tilem.render()
                     if icon != -1:
-                        # self.
                         pos = [round(i,self.size), round(self.rect.top-self.resolution,self.size)]
                         items_group.add(items(pos,tiles.tiles[icon]))
+                    else: game.score += 100
 
 
 
-        elif 130 in self.type.values():
-            self.dead()
+        elif 5 in self.type.values():
+            # self.dead()
+            print("dead")
+            self.status = 0
+            self.life = False
         else:
             self.gravity += 0.15*self.scale
         # self.aply_gravity()
 
-        if self.type["mbottomleft"] in self.borders["left"] or self.type["mtopleft"] in self.borders["left"]:
+        # if self.type["mbottomleft"] in self.borders["left"] or self.type["mtopleft"] in self.borders["left"]:
             # self.rect.right = self.rect.right//16 *16 + 16
-            self.direct[0] = 1
-            self.dx = -1*self.scale
-            self.map_input()
-            if self.type["mbottomleft"] in self.borders["left"] or self.type["mtopleft"] in self.borders["left"]:
-                self.dx = 0
+
+        test = [i for i in range(self.player["top"]+self.safespace,self.player["bottom"]-self.safespace)]
+        # print(test)
+        # if 234 in test:
+
+        for i in test:
+            # print(tilem.map[(self.player["top"] + self.roundg)//self.resolution , i//self.resolution])
+            if tilem.map[(i)//self.resolution , (self.player["left"]+self.dx)//self.resolution] in self.borders["left"]:
+
+
+                self.direct[0] = 1
+                self.dx = -1*self.scale
+                self.map_input()
+                # if self.type["mbottomleft"] in self.borders["left"] or self.type["mtopleft"] in self.borders["left"]:
+                if tilem.map[(i)//self.resolution , (self.player["left"]+self.dx)//self.resolution] in self.borders["left"]:
+                    self.dx = 0
             
-        elif self.type["mbottomright"] in self.borders["right"] or self.type["mtopright"] in self.borders["right"]:
+            if tilem.map[(i)//self.resolution , (self.player["right"]+self.dx)//self.resolution] in self.borders["right"]:
+        # elif self.type["mbottomright"] in self.borders["right"] or self.type["mtopright"] in self.borders["right"]:
             # self.rect.left = self.rect.left//16 *16 -1
-            self.direct[0] = -1
-            self.dx = 1*self.scale
-            self.map_input()
-            if self.type["mbottomright"] in self.borders["right"] or self.type["mtopright"] in self.borders["right"]:
-                self.dx = 0
+                self.direct[0] = -1
+                self.dx = 1*self.scale
+                self.map_input()
+                # if self.type["mbottomright"] in self.borders["right"] or self.type["mtopright"] in self.borders["right"]:
+                if tilem.map[(i)//self.resolution , (self.player["right"]+self.dx)//self.resolution] in self.borders["right"]:
+                    self.dx = 0
 
         self.rect.x += self.dx
 
@@ -771,13 +888,13 @@ class Enemy(pygame.sprite.Sprite):
         elif self.character == "player" and -2 < self.gravity < 3:
             if pygame.sprite.spritecollide(player.sprite, enemy_group, False): # False na konci určuje, zda-li má kolidující items zabít
                 if self.playerstat[1] == "small":
-                    print("player")
-                    # print(self.gravity)
-                    # print(pygame.sprite.spritecollide(player.sprite, enemy_group, False))
+                    # print("player")
                     self.status = 0
                     self.count = 0
                     self.gravity = -10
                     self.life = False
+                    
+                    
                 else:
                     self.playerstat[0] = "grown"
                     self.image_number = 1
@@ -786,8 +903,9 @@ class Enemy(pygame.sprite.Sprite):
             for i in item:
                 if self.playerstat[1] == "small":
                     self.playerstat[0] = "grown"
+                game.score += 1000
 
-                print(self.playerstat)
+                # print(self.playerstat)
                 self.image_number = 1
 
         
@@ -811,17 +929,11 @@ class items(pygame.sprite.Sprite):
     def __init__(self,pos,image):
         super().__init__()
         print("start")
-        # print(image)
-        # self.tileset = tileset
-        # i,j = pos
-        # tile = self.tileset.tiles[pos]
-        # self.image.blit(tile, (i*16, j*16))
-        # self.image = pygame.image.load("kaktus.png").convert_alpha()
         self.image = image
-        size = 48
+        size = RESOLUTION*SCALE
         self.image = pygame.transform.scale(self.image,(size, size))
         self.cam = game.cam[:]
-        self.rect = self.image.get_rect(bottomleft = (pos))
+        self.rect = self.image.get_rect(bottomleft = (pos[0] + self.cam[0],pos[1]+ self.cam[1]))
         # self.speed  = 4
 
     def update(self):
@@ -840,6 +952,7 @@ class items(pygame.sprite.Sprite):
     def destroy(self):
         if pygame.sprite.spritecollide(player.sprite, items_group, True): # False na konci určuje, zda-li má kolidující items zabít
             print("xx")
+            # game.score += 100:0
             # self.kill()
 
 def round(pos,round_number):
@@ -847,10 +960,24 @@ def round(pos,round_number):
         print("t")
     if type(pos) == int:
         pos = pos//round_number*round_number
-        print(pos)
+        # print(pos)
         return pos
 
+
 # player.add(Player(RESOLUTION,SCALE))
+text_block_width = 600
+long_text1 = """Pokud se vam zda, ze tato hra se podoba Mario Bros, tak je to cista, ale opravdu cistá nahoda, v teto hre budete hrat za postavicku, která ma za cil vysvobodit princeznu(neni zde), tak, ze projdete pres ruzne prekazky, zabijete nekolik monster.
+Ve hre se muzete pohybovat pomoci wsad. Dale take muzete v ? sebrat bud houbicku na zvetseni ."""
+WHITE = (255, 255, 255)
+long_text2 = "Zde spadnete a umrete"
+long_text3 = "Jsi v cili muzes to uz ukoncit"
+long_text4 = "houbicky"
+font = pygame.font.Font("font.otf", 20)
+texty = [MultiLineText(font, WHITE, text_block_width) for _ in range(5)]
+texty[0].set_text(long_text1)
+texty[1].set_text(long_text2)
+texty[2].set_text(long_text3)
+texty[3].set_text(long_text4)
 game = Game()
 enemy_set = Tileset(file_enemy,(8,8),scale = SCALE)
 player_set = Tileset(file_player,(8,8),scale = SCALE)
@@ -867,12 +994,5 @@ background = Tilemap(tiles,bg_set.shape)
 background.set(bg_set)
 
 items_group = pygame.sprite.Group()
-# game.render(background.image)
-# game.render(tilem.image)
-# enemy_group.add(Enemy((round(220,RESOLUTION),200),1,enemy_set,(2,2)))
-# enemy_group.add(Enemy((round(260,RESOLUTION),200),1,enemy_set,(2,2)))
-# game.screen.blit(tilem.image,(0,0))
-# pygame.display.update()
-# tilem.render()
 game.run()
 
