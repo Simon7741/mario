@@ -37,8 +37,8 @@ class Game:
     def __init__(self):
         self.fps = 45
         pygame.init()
-        # self.screen = pygame.display.set_mode(Game.SIZE,pygame.FULLSCREEN)
-        self.screen = pygame.display.set_mode(Game.SIZE)
+        self.screen = pygame.display.set_mode(Game.SIZE,pygame.FULLSCREEN)
+        # self.screen = pygame.display.set_mode(Game.SIZE)
         # pygame.display.toggle_fullscreen()
         pygame.display.set_caption("'Fake' Mario")
         self.running = True
@@ -967,7 +967,7 @@ def round(pos,round_number):
 # player.add(Player(RESOLUTION,SCALE))
 text_block_width = 600
 long_text1 = """Pokud se vam zda, ze tato hra se podoba Mario Bros, tak je to cista, ale opravdu cistá nahoda, v teto hre budete hrat za postavicku, která ma za cil vysvobodit princeznu(neni zde), tak, ze projdete pres ruzne prekazky, zabijete nekolik monster.
-Ve hre se muzete pohybovat pomoci wsad. Dale take muzete v ? sebrat bud houbicku na zvetseni ."""
+Ve hre se muzete pohybovat pomoci wsad. Dale take muzete v ? sebrat bud houbicku na zvetseni."""
 WHITE = (255, 255, 255)
 long_text2 = "Zde spadnete a umrete"
 long_text3 = "Jsi v cili muzes to uz ukoncit"
